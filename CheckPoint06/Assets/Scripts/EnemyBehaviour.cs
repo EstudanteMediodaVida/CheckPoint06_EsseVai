@@ -17,7 +17,7 @@ public class EnemyBehaviour : MonoBehaviour
 
     private bool wakeup;
     private bool attacking1;
-    private bool attacking2;
+    private bool attacking;
     private bool taunting;
     private int attackN;
 
@@ -38,11 +38,9 @@ public class EnemyBehaviour : MonoBehaviour
     {
         if (wakeup == false)
         {
-            StartCoroutine(Idling());
 
             if (Vector2.Distance(transform.position, player.transform.position) < sight)
             {
-                StopCoroutine(Idling());
                 wakeup = true;
             }
         }
@@ -56,6 +54,11 @@ public class EnemyBehaviour : MonoBehaviour
             {
                 Move();
             }
+
+            if(Vector2.Distance(transform.position, player.transform.position) > sight)
+            {
+                wakeup = false;
+            }
         }
 
         AnimationManager();
@@ -64,7 +67,7 @@ public class EnemyBehaviour : MonoBehaviour
 
     void Move()
     {
-        if (attacking1 == true || attacking2 == true) return;
+        if (attacking == true) return;
 
         transform.position = Vector2.MoveTowards(transform.position, player.transform.position, speed * Time.deltaTime);
 
@@ -80,49 +83,49 @@ public class EnemyBehaviour : MonoBehaviour
 
     void Attack()
     {
-        attackN = Random.Range(1, 3);
-        
-        if (attackN == 1)
-        {
-            StartCoroutine(Attacking1());
-        }
-        else if (attackN == 2)
-        {
-            StartCoroutine(Attacking2());
-        }
+            StartCoroutine(Attacking());
     }
 
-    IEnumerator Idling()
+    IEnumerator Attacking()
     {
-        taunting = true;
+        attacking = true;
+        wakeup = true;
         yield return new WaitForSeconds(1.5f);
-        taunting = false;
-    }
-    
-    IEnumerator Attacking1()
-    {
-        attacking1 = true;
-        attacking2 = false;
-        wakeup = true;
-        yield return new WaitForSeconds(1.8f);
-        attacking1 = false;
-    }
-
-    IEnumerator Attacking2()
-    {
-        attacking2 = true;
-        attacking1 = false;
-        wakeup = true;
-        yield return new WaitForSeconds(2.3f);
-        attacking2 = false;
+        attacking = false;
     }
 
     void AnimationManager()
     {
         anim.SetBool("pWakeUp", wakeup);
-        anim.SetBool("pAttack1", attacking1);
-        anim.SetBool("pAttack2", attacking2);
+        anim.SetBool("pAttack", attacking);
         anim.SetBool("pDeath", hp <= 0);
         anim.SetBool("pTaunt", taunting);
+    }
+
+    private void OnTriggerEnter2D(Collider2D collision)
+    {
+        if(collision.tag == "Attack")
+        {
+            Destroy(collision.gameObject);
+            StartCoroutine(TakeDamage());
+        }
+    }
+
+    IEnumerator TakeDamage()
+    {
+        hp--;
+
+        if(hp > 0)
+        {
+            sr.color = Color.red;
+            yield return new WaitForSeconds(0.25f);
+            sr.color = Color.white;
+            yield return new WaitForSeconds(0.25f);
+        }
+        else
+        {
+            yield return new WaitForSeconds(2.0f);
+            Destroy(gameObject);
+        }
     }
 }
